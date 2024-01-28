@@ -371,11 +371,45 @@ class PhysicsEnginePlatformer:
         self.allow_multi_jump = False
         self.allowed_jumps = 1
         self.jumps_since_ground = 0
+        
+    def jump(self, velocity: int,
+             air_jump_velocity: Optional[int] = None,
+             air_jump_style: Optional[str] = "set",
+             jump_velocity_limit: Optional[int] = None):
+        """ Have the character jump. Multijump can be set with a separate in-air velocity and can be air jumps can be
+        set to be additive, limited, or a set value. Additive only adds to the player's upward velocity. Limited will
+        set or add to the player's velocity. If the player is falling, then their velocity will be set to their air
+        jump speed. Otherwise, it will add their air jump speed up until the jump_velocity limit. Set always sets the
+        player's velocity to their air jump speed. """
+        if self.can_jump():
+            # Air Jump logic
+            if self.jumps_since_ground > 0:
+                # This checks if air_jump_velocity is set. If not it will default to the velocity for all air jumps.
+                if air_jump_velocity:
+                    air_jump = air_jump_velocity
+                else:
+                    air_jump = velocity
+                if air_jump_style == "additive":
+                    self.player_sprite.change_y += air_jump
+                elif air_jump_style == "limited":
+                    if not jump_velocity_limit:
+                        jump_velocity_limit = air_jump
+                    if self.player_sprite.change_y < 0:
+                        self.player_sprite.change_y = air_jump
+                    elif self.player_sprite.change_y + air_jump < jump_velocity_limit:
+                        self.player_sprite.change_y += air_jump
+                    else:
+                        self.player_sprite.change_y = jump_velocity_limit
+                elif air_jump_style == "set":
+                    self.player_sprite.change_y = air_jump
+                else:
+                    raise ValueError("Air jump style set is not valid. Use additive, limited, or set.")
 
-    def jump(self, velocity: int):
-        """ Have the character jump. """
-        self.player_sprite.change_y = velocity
-        self.increment_jump_counter()
+            # Ground Jump Logic
+            else:
+                self.player_sprite.change_y = velocity
+
+            self.increment_jump_counter()
 
     def increment_jump_counter(self):
         """
